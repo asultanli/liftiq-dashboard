@@ -19,6 +19,7 @@ python3 prep.py
 | `prep.py` | Cleaning, flagging, aggregation, CEO story numbers |
 | `template.html` | Page layout, charts and calculations |
 | `index.html` | Generated output. This is the dashboard. |
+| `claude_code_session.md` | The Claude Code session log, including my corrections and redirections |
 
 ## What is on the page
 
