@@ -6,7 +6,7 @@ LiftIQ BI take-home. My messages and Claude's replies in order. Internal reasoni
 
 ## User (1)
 
-@"/Users/sultanliaykhan/Desktop/Task/"
+@"~/Desktop/Task/"
 
 
 I have a BI take-home task for LiftIQ (affiliate network). The workbook LiftIQ_bi_candidate_dataset_1.xlsx is in this folder. Work through the steps below in order. After each step STOP, show me what you found, and wait for my go-ahead before moving on.
@@ -187,7 +187,7 @@ Now the template: plain JS and SVG, with a placeholder where `prep.py` injects t
 
 <details><summary>Tool calls (6)</summary>
 
-- Browser preview_start: file:///Users/sultanliaykhan/Desktop/Task/index.html
+- Browser preview_start: file://~/Desktop/Task/index.html
 - Browser: read_console_messages, computer screenshot
 - Browser javascript_tool: [innerWidth, document.getElementById('trend').clientWidth, document.q…
 - Browser javascript_tool: const s=document.querySelector('#trend svg').getBoundingClientRect();…
@@ -606,9 +606,7 @@ I removed the workbook from the repo and from its git history, added `*.xlsx` to
 - **README:** "How to run" now says the workbook isn't in the repo and to put `LiftIQ_bi_candidate_dataset (1).xlsx` in the folder before running `prep.py`. It also says you only need it to rebuild, since the data is already baked into `index.html`.
 - **Dashboard:** Pages rebuilt from the new commit and https://menu.s2stud.io/liftiq-dashboard/ loads as before.
 
-**The file can still be reached on GitHub.** GitHub keeps the old commit for a while, so this direct link still returns the file:
-`https://github.com/asultanli/liftiq-dashboard/blob/2341650/LiftIQ_bi_candidate_dataset%20(1).xlsx`
-Nobody can find it from the repo, but anyone who has that commit ID can. There are two ways to remove it completely:
+**The file can still be reached on GitHub.** GitHub keeps the old commit for a while, so a direct link to it still returns the file (link removed from this log). Nobody can find it from the repo, but anyone who has that commit ID can. There are two ways to remove it completely:
 1. Ask GitHub Support to purge the cached commit. The repo and links stay as they are, but it can take a few days.
 2. Delete the repo and recreate it from the cleaned local copy, then turn Pages back on. The links stay the same and it takes about a minute, but deleting a repo can't be undone, so I'd only do it if you confirm.
 
