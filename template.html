@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LiftIQ Performance</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --wash: rgba(11,11,11,0.04);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  --pos: #2a78d6; --neg: #e34948; --mid: #f0efec;
+  --good-text: #006300; --bad-text: #c02f2f;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b; --info: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --pos: #3987e5; --neg: #e66767; --mid: #383835;
+    --good-text: #0ca30c; --bad-text: #ef7a7a; --info: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.05);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --pos: #3987e5; --neg: #e66767; --mid: #383835;
+  --good-text: #0ca30c; --bad-text: #ef7a7a; --info: #3987e5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px 48px; }
+header.top {
+  position: sticky; top: 0; z-index: 10; background: var(--page);
+  border-bottom: 1px solid var(--border);
+}
+header.top .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding-top: 12px; padding-bottom: 12px; }
+h1 { font-size: 18px; margin: 0; font-weight: 650; }
+h1 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-left: auto; }
+.controls label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+select, button { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+button { cursor: pointer; }
+button:hover, select:hover { background: var(--wash); }
+input[type=checkbox] { accent-color: var(--s1); width: 16px; height: 16px; margin: 0; }
+section { margin-top: 28px; }
+h2 { font-size: 16px; margin: 0 0 4px; font-weight: 650; }
+.sub { color: var(--ink-2); margin: 0 0 12px; font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 24px; font-weight: 650; margin: 2px 0; letter-spacing: -0.01em; }
+.tile .delta { font-size: 12.5px; color: var(--ink-2); min-height: 18px; }
+.tile .delta b { font-weight: 600; }
+.up-good { color: var(--good-text); } .down-bad { color: var(--bad-text); }
+.tile svg { display: block; width: 100%; height: 34px; margin-top: 8px; overflow: visible; }
+.charts2 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.chart { width: 100%; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text, .tile text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart text.lab { fill: var(--ink-2); font-size: 12px; }
+.chart text.val { fill: var(--ink); font-size: 11.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; background: var(--surface); margin-bottom: 12px; }
+.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 7px; color: var(--ink-2); }
+.seg button[aria-pressed=true] { background: var(--ink); color: var(--page); }
+.summary { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.summary b { color: var(--ink); font-weight: 600; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+td:first-child { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+th { color: var(--ink-2); font-weight: 600; font-size: 12px; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
+th[data-sort]::after { content: " \2195"; color: var(--muted); }
+th.asc::after { content: " \2191"; color: var(--ink); }
+th.desc::after { content: " \2193"; color: var(--ink); }
+th.status, td.status { text-align: left; white-space: normal; min-width: 150px; }
+tbody tr:hover { background: var(--wash); }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 1px 7px 1px 5px; border-radius: 999px; border: 1px solid var(--border); margin: 1px 3px 1px 0; color: var(--ink); white-space: nowrap; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.heat { display: grid; gap: 2px; min-width: 640px; }
+.heat .h { font-size: 12px; color: var(--ink-2); padding: 4px 6px; display: flex; align-items: flex-end; }
+.heat .h.col { justify-content: center; text-align: center; line-height: 1.2; }
+.heat .h:not(.col) { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.heat .c { height: 40px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-variant-numeric: tabular-nums; cursor: default; }
+.heat .c.empty { color: var(--muted); border: 1px dashed var(--grid); background: transparent; }
+.heat .c.newcell { outline: 1px dashed var(--axis); outline-offset: -3px; }
+.heat-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); margin-top: 10px; flex-wrap: wrap; }
+.heat-legend .bar { width: 180px; height: 10px; border-radius: 3px; }
+.notes { columns: 2 320px; column-gap: 32px; }
+.notes h3 { font-size: 13.5px; margin: 0 0 4px; break-after: avoid; }
+.notes div { break-inside: avoid; margin-bottom: 14px; color: var(--ink-2); }
+.notes code { font-size: 12px; background: var(--wash); padding: 1px 4px; border-radius: 4px; color: var(--ink); }
+.notes ul { margin: 4px 0 0; padding-left: 18px; }
+.card h2 { margin-bottom: 2px; }
+.card .legend { margin-top: 8px; }
+details.more { margin-top: 12px; border-top: 1px solid var(--grid); padding-top: 10px; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+details.method summary { font-weight: 600; color: var(--ink); font-size: 14px; }
+details.method[open] summary { margin-bottom: 12px; }
+.flagtoggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); margin-bottom: 14px; cursor: pointer; }
+.chart text.chiplab { font-size: 11px; fill: var(--ink-2); }
+.ceo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ceo .card { display: flex; flex-direction: column; gap: 6px; }
+.ceo .n { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+.ceo h3 { font-size: 15.5px; margin: 0; line-height: 1.3; }
+.ceo .big { font-size: 28px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+.ceo .big small { font-size: 13px; font-weight: 400; color: var(--ink-2); margin-left: 4px; }
+.ceo p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.ceo p b { color: var(--ink); font-weight: 600; }
+.ceo .act { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--grid); color: var(--ink); }
+.ceo .mini svg { display: block; width: 100%; overflow: visible; }
+.ceo .mini text { font: 10.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); }
+.ceo .keys { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 11.5px; color: var(--ink-2); }
+.ceo .keys i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+@media (max-width: 1000px) { .ceo { grid-template-columns: 1fr; } }
+.empty-msg { color: var(--muted); padding: 24px 0; text-align: center; }
+#tip {
+  position: fixed; z-index: 50; pointer-events: none; display: none; max-width: 300px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18); padding: 8px 10px; font-size: 12.5px;
+}
+#tip .t { font-weight: 600; margin-bottom: 4px; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
+#tip .r span:first-child { color: var(--ink-2); }
+#tip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+@media (max-width: 1000px) { .charts2 { grid-template-columns: 1fr; } }
+@media (max-width: 560px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .tile .value { font-size: 20px; }
+  .card { padding: 12px; }
+  .controls { margin-left: 0; }
+  h1 small { display: block; margin: 0; }
+  header.top { position: static; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>LiftIQ performance <small id="srcnote"></small></h1>
+    <div class="controls">
+      <label>Month <select id="month"></select></label>
+      <label><input type="checkbox" id="perday"> Per day</label>
+      <button id="theme" type="button" aria-label="Toggle colour theme">Theme</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2>60 seconds with the CEO</h2>
+    <p class="sub">$ impact per month, January to June 2025, flagged rows excluded. Bars below zero are profit lost.</p>
+    <div class="ceo" id="ceo"></div>
+  </section>
+
+  <section>
+    <p class="sub" id="kpi-sub"></p>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <div class="charts2">
+      <div class="card">
+        <h2 id="trend-title"></h2>
+        <div class="legend" id="trend-legend"></div>
+        <div class="chart" id="trend"></div>
+      </div>
+      <div class="card">
+        <h2 id="margin-title"></h2>
+        <div class="legend"><span>Margin %</span></div>
+        <div class="chart" id="margin"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2 id="movers-title"></h2>
+      <p class="sub" id="movers-sub"></p>
+      <div class="seg" id="dimseg" role="group" aria-label="Group by"></div>
+      <div class="chart" id="movers"></div>
+      <details class="more">
+        <summary>Full table: revenue, margin and status</summary>
+        <div class="scroll"><table id="movers-table"></table></div>
+      </details>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2 id="heat-title"></h2>
+      <p class="sub" id="heat-sub"></p>
+      <div class="scroll"><div class="heat" id="heat"></div></div>
+      <div class="heat-legend" id="heat-legend"></div>
+    </div>
+  </section>
+
+  <section>
+    <details class="card method">
+      <summary>Methodology</summary>
+      <label class="flagtoggle"><input type="checkbox" id="flagged"> Include flagged rows (Green Roof Solar, 27 Apr)</label>
+      <div class="notes" id="notes"></div>
+    </details>
+  </section>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+/* ---------- decode the cube ---------- */
+const L = DATA.lookups, MONTHS = DATA.months, DAYS = DATA.days;
+const ROWS = DATA.rows.map(r => ({
+  m: L.month[r[0]], adv: L.advertiser_name[r[1]], vert: L.vertical[r[2]], ae: L.account_executive[r[3]],
+  offer: L.offer_name[r[4]], pub: L.publisher_name[r[5]], pm: L.publisher_manager[r[6]],
+  flag: r[7], reason: L.flag_reason[r[8]], clicks: r[9], conv: r[10], rev: r[11], pay: r[12]
+}));
+const DIMS = [
+  { k: 'adv', label: 'Advertiser' }, { k: 'offer', label: 'Offer' }, { k: 'pub', label: 'Publisher' },
+  { k: 'vert', label: 'Vertical' }, { k: 'ae', label: 'AE' }, { k: 'pm', label: 'Publisher manager' }
+];
+
+const state = { month: MONTHS[MONTHS.length - 1], perDay: false, flagged: false, dim: 'adv', sort: { key: 'dProfit', dir: 1 } };
+
+/* ---------- maths ---------- */
+// Margin is always sum(profit) / sum(revenue). Never an average of row margins.
+function total(rows) {
+  const t = { clicks: 0, conv: 0, rev: 0, pay: 0 };
+  for (const r of rows) { t.clicks += r.clicks; t.conv += r.conv; t.rev += r.rev; t.pay += r.pay; }
+  t.profit = t.rev - t.pay;
+  t.margin = t.rev ? t.profit / t.rev : null;
+  return t;
+}
+// Divide additive metrics by days in month when "Per day" is on. Margin is a ratio and is unchanged.
+function scaled(t, m) {
+  if (!state.perDay) return t;
+  const d = DAYS[m];
+  return { clicks: t.clicks / d, conv: t.conv / d, rev: t.rev / d, pay: t.pay / d, profit: t.profit / d, margin: t.margin };
+}
+const pctChange = (cur, prev) => (prev ? (cur - prev) / Math.abs(prev) : null);
+const visibleRows = () => (state.flagged ? ROWS : ROWS.filter(r => !r.flag));
+function byMonth(rows) {
+  const g = {}; for (const m of MONTHS) g[m] = [];
+  for (const r of rows) g[r.m].push(r);
+  const out = {}; for (const m of MONTHS) out[m] = scaled(total(g[m]), m);
+  return out;
+}
+const prevMonth = m => { const i = MONTHS.indexOf(m); return i > 0 ? MONTHS[i - 1] : null; };
+
+/* ---------- formatting ---------- */
+const MINUS = '−';
+const sign = (v, s) => (v > 0 ? '+' : v < 0 ? MINUS : '') + s;
+function money(v, compact = true) {
+  if (v == null) return 'n/a';
+  const a = Math.abs(v), s = v < 0 ? MINUS : '';
+  if (!compact) return s + '$' + Math.round(a).toLocaleString('en-US');
+  if (a >= 1e6) return s + '$' + (a / 1e6).toFixed(2) + 'M';
+  if (a >= 1e4) return s + '$' + (a / 1e3).toFixed(1) + 'K';
+  if (a >= 1e3) return s + '$' + (a / 1e3).toFixed(2) + 'K';
+  return s + '$' + a.toFixed(0);
+}
+function num(v) {
+  const a = Math.abs(v), s = v < 0 ? MINUS : '';
+  if (a >= 1e4) return s + (a / 1e3).toFixed(1) + 'K';
+  if (a >= 100 || Number.isInteger(a)) return s + Math.round(a).toLocaleString('en-US');
+  return s + a.toFixed(a < 10 ? 2 : 1);
+}
+const pct = (v, d = 1) => (v == null ? 'n/a' : (v * 100).toFixed(d) + '%');
+const rsign = (v, d, suf) => { const t = Math.abs(v * 100).toFixed(d); return (+t === 0 ? '' : v > 0 ? '+' : MINUS) + t + suf; };
+const spct = (v, d = 1) => (v == null || !isFinite(v) ? 'n/a' : rsign(v, d, '%'));
+const pp = (v, d = 2) => (v == null ? 'n/a' : rsign(v, d, ' pp'));
+const monthName = (m, long) => new Date(m + '-15').toLocaleString('en-US', long ? { month: 'long', year: 'numeric' } : { month: 'short' });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const unit = () => (state.perDay ? ' per day' : '');
+
+/* ---------- tooltip ---------- */
+const tip = document.getElementById('tip');
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight, vw = innerWidth, vh = innerHeight;
+  let left = x + 14, top = y + 14;
+  if (left + w > vw - 8) left = Math.max(8, x - w - 14);
+  if (top + h > vh - 8) top = Math.max(8, y - h - 14);
+  tip.style.left = left + 'px'; tip.style.top = top + 'px';
+}
+const hideTip = () => { tip.style.display = 'none'; };
+addEventListener('scroll', hideTip, { passive: true });
+const tipRow = (k, v, color) => `<div class="r"><span>${color ? `<i style="background:${color}"></i>` : ''}${esc(k)}</span><span>${v}</span></div>`;
+function hoverable(el, html) {
+  el.addEventListener('pointermove', e => showTip(typeof html === 'function' ? html() : html, e.clientX, e.clientY));
+  el.addEventListener('pointerdown', e => showTip(typeof html === 'function' ? html() : html, e.clientX, e.clientY));
+  el.addEventListener('pointerleave', hideTip);
+}
+
+/* ---------- svg helpers ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function niceTicks(min, max, n = 4) {
+  if (min === max) { max = min + 1; }
+  const span = max - min, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => span / s <= n) || 10 * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, out = [];
+  for (let v = lo; v <= hi + step / 2; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+// Horizontal bar with a 4px rounded data-end and a square baseline end.
+function hbarPath(x0, x1, y, h, r = 4) {
+  const dir = x1 >= x0 ? 1 : -1, len = Math.abs(x1 - x0);
+  r = Math.min(r, len, h / 2);
+  const xe = x1 - dir * r;
+  return `M${x0},${y}H${xe}Q${x1},${y} ${x1},${y + r}V${y + h - r}Q${x1},${y + h} ${xe},${y + h}H${x0}Z`;
+}
+
+/* ---------- line chart ---------- */
+function lineChart(host, { series, fmtAxis, fmtVal, height = 250, zero = true, endLabels = true, onPick }) {
+  host.innerHTML = '';
+  const W = Math.max(host.clientWidth, 200), H = height;
+  const m = { l: 52, r: endLabels ? 70 : 52, t: 14, b: 26 };
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img' }, host);
+  const all = series.flatMap(s => s.values).filter(v => v != null);
+  let lo = Math.min(...all), hi = Math.max(...all);
+  if (zero) lo = Math.min(0, lo); else { const pad = (hi - lo) * 0.25 || Math.abs(hi) * 0.05; lo -= pad; hi += pad; }
+  const ticks = niceTicks(lo, hi, 4); lo = ticks[0]; hi = ticks[ticks.length - 1];
+  const n = MONTHS.length, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const x = i => m.l + (n === 1 ? pw / 2 : (i * pw) / (n - 1));
+  const y = v => m.t + ph - ((v - lo) / (hi - lo)) * ph;
+  const si = MONTHS.indexOf(state.month);
+  // selected month band
+  svgEl('rect', { x: x(si) - Math.min(28, pw / (n - 1) / 2), y: m.t, width: Math.min(56, pw / (n - 1)), height: ph, fill: css('--wash'), rx: 4 }, svg);
+  for (const t of ticks) {
+    svgEl('line', { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: t === 0 ? css('--axis') : css('--grid'), 'stroke-width': 1 }, svg);
+    svgEl('text', { x: m.l - 8, y: y(t) + 4, 'text-anchor': 'end' }, svg).textContent = fmtAxis(t);
+  }
+  MONTHS.forEach((mo, i) => {
+    const t = svgEl('text', { x: x(i), y: H - 6, 'text-anchor': 'middle' }, svg);
+    t.textContent = monthName(mo);
+    if (i === si) t.setAttribute('style', 'fill:var(--ink);font-weight:600');
+  });
+  for (const s of series) {
+    const pts = s.values.map((v, i) => (v == null ? null : [x(i), y(v)])).filter(Boolean);
+    svgEl('polyline', { points: pts.map(p => p.join(',')).join(' '), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+    const last = s.values.length - 1;
+    svgEl('circle', { cx: x(si), cy: y(s.values[si]), r: 4, fill: s.color, stroke: css('--surface'), 'stroke-width': 2 }, svg);
+    if (endLabels) {
+      const t = svgEl('text', { x: x(last) + 8, y: y(s.values[last]) + 4, class: 'lab' }, svg);
+      t.textContent = s.name;
+    } else {
+      const t = svgEl('text', { x: x(last) + 8, y: y(s.values[last]) + 4, class: 'val' }, svg);
+      t.textContent = fmtVal(s.values[last]);
+    }
+  }
+  // crosshair + tooltip
+  const cross = svgEl('line', { y1: m.t, y2: m.t + ph, stroke: css('--axis'), 'stroke-width': 1, visibility: 'hidden' }, svg);
+  const dots = series.map(s => svgEl('circle', { r: 4, fill: s.color, stroke: css('--surface'), 'stroke-width': 2, visibility: 'hidden' }, svg));
+  const hit = svgEl('rect', { x: m.l - 20, y: 0, width: pw + 40, height: H, fill: 'transparent', style: 'cursor:pointer' }, svg);
+  const idxAt = e => {
+    const r = svg.getBoundingClientRect(), px = ((e.clientX - r.left) / r.width) * W;
+    return Math.max(0, Math.min(n - 1, Math.round(((px - m.l) / pw) * (n - 1))));
+  };
+  const move = e => {
+    const i = idxAt(e);
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility', 'visible');
+    series.forEach((s, k) => { dots[k].setAttribute('cx', x(i)); dots[k].setAttribute('cy', y(s.values[i])); dots[k].setAttribute('visibility', 'visible'); });
+    showTip(`<div class="t">${monthName(MONTHS[i], true)}${unit()}</div>` + series.map(s => tipRow(s.name, fmtVal(s.values[i]), s.color)).join(''), e.clientX, e.clientY);
+  };
+  hit.addEventListener('pointermove', move);
+  hit.addEventListener('pointerdown', move);
+  hit.addEventListener('pointerleave', () => { hideTip(); cross.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')); });
+  if (onPick) hit.addEventListener('click', e => onPick(MONTHS[idxAt(e)]));
+}
+
+/* ---------- KPI tiles ---------- */
+const KPIS = [
+  { k: 'rev', label: 'Revenue', fmt: v => money(v), good: 1 },
+  { k: 'profit', label: 'Profit', fmt: v => money(v), good: 1 },
+  { k: 'margin', label: 'Margin', fmt: v => pct(v, 2), good: 1, ratio: true },
+  { k: 'conv', label: 'Conversions', fmt: v => num(v), good: 1 }
+];
+function renderKpis(series) {
+  const host = document.getElementById('kpis'); host.innerHTML = '';
+  const cur = series[state.month], pm = prevMonth(state.month), prev = pm ? series[pm] : null;
+  document.getElementById('kpi-sub').textContent =
+    `${monthName(state.month, true)}${unit()} vs ${pm ? monthName(pm, true) : 'no prior month'}` +
+    (state.flagged ? ' (flagged rows included)' : '');
+  for (const k of KPIS) {
+    const tile = document.createElement('div'); tile.className = 'card tile';
+    const v = cur[k.k];
+    let delta = '<span>No prior month</span>';
+    if (prev) {
+      const abs = v - prev[k.k];
+      const cls = !k.good || Math.abs(abs) < 1e-12 ? '' : (abs > 0 ? 'up-good' : 'down-bad');
+      const arrow = abs > 0 ? '▲' : abs < 0 ? '▼' : '';
+      delta = k.ratio
+        ? `<b class="${cls}">${arrow} ${pp(abs)}</b> vs ${monthName(pm)}`
+        : `<b class="${cls}">${arrow} ${spct(pctChange(v, prev[k.k]))}</b> · ${sign(abs, k.fmt(Math.abs(abs)))} vs ${monthName(pm)}`;
+    }
+    tile.innerHTML = `<div class="label">${k.label}${k.ratio ? '' : unit()}</div><div class="value">${k.fmt(v)}</div><div class="delta">${delta}</div>`;
+    host.appendChild(tile);
+  }
+}
+
+/* ---------- trends ---------- */
+function renderTrends(series) {
+  const S = [
+    { name: 'Revenue', color: css('--s1'), values: MONTHS.map(m => series[m].rev) },
+    { name: 'Profit', color: css('--s3'), values: MONTHS.map(m => series[m].profit) }
+  ];
+  const f = MONTHS[0], c = state.month, si = MONTHS.indexOf(c);
+  const move = (v, what) => `${what} ${Math.abs(v) < 0.005 ? 'is flat' : (v > 0 ? 'is up ' : 'is down ') + Math.abs(v * 100).toFixed(1) + '%'}`;
+  const rc = pctChange(series[c].rev, series[f].rev), pc = pctChange(series[c].profit, series[f].profit);
+  document.getElementById('trend-title').textContent = si === 0
+    ? `${monthName(c, true)}: ${money(series[c].rev)} revenue, ${money(series[c].profit)} profit${unit()}`
+    : `${move(rc, 'Revenue')} since ${monthName(f, true).split(' ')[0]}, ${(rc >= 0) !== (pc >= 0) ? 'but ' : ''}${move(pc, 'profit')}`;
+  let falls = 0; for (let i = 1; i <= si; i++) if (series[MONTHS[i]].margin < series[MONTHS[i - 1]].margin) falls++;
+  document.getElementById('margin-title').textContent = si === 0
+    ? `Margin ${pct(series[c].margin)} in ${monthName(c, true)}`
+    : `Margin ${series[c].margin < series[f].margin ? 'fell' : 'rose'} from ${pct(series[f].margin)} to ${pct(series[c].margin)}` + (falls ? `, down in ${falls} of ${si} months` : '');
+  document.getElementById('trend-legend').innerHTML = S.map(s => `<span><i style="background:${s.color}"></i>${s.name}${unit()}</span>`).join('');
+  const pick = m => { state.month = m; document.getElementById('month').value = m; render(); };
+  lineChart(document.getElementById('trend'), { series: S, fmtAxis: v => money(v).replace('.0K', 'K').replace('.00K', 'K'), fmtVal: v => money(v, false), onPick: pick });
+  lineChart(document.getElementById('margin'), {
+    series: [{ name: 'Margin', color: css('--s1'), values: MONTHS.map(m => series[m].margin) }],
+    fmtAxis: v => (v * 100).toFixed(0) + '%', fmtVal: v => pct(v, 2), zero: false, endLabels: false, onPick: pick
+  });
+}
+
+/* ---------- what moved profit ---------- */
+function groupMonthly(rows, key) {
+  // returns Map(name -> {month -> totals})
+  const g = new Map();
+  for (const r of rows) {
+    if (!g.has(r[key])) g.set(r[key], {});
+    const o = g.get(r[key]); (o[r.m] = o[r.m] || []).push(r);
+  }
+  const out = new Map();
+  for (const [name, o] of g) {
+    const t = {}; for (const m of MONTHS) t[m] = scaled(total(o[m] || []), m);
+    out.set(name, t);
+  }
+  return out;
+}
+// Baseline for "Margin eroding" = January, or the entity's first active month if it started later.
+function baselineMonth(t) { return MONTHS.find(m => t[m].rev > 0) || null; }
+
+function moverStats(key) {
+  const cur = state.month, pm = prevMonth(cur);
+  const g = groupMonthly(visibleRows(), key), items = [];
+  for (const [name, t] of g) {
+    const c = t[cur], p = pm ? t[pm] : null;
+    if (!(c.rev > 0 || (p && p.rev > 0))) continue;
+    const bm = baselineMonth(t);
+    const it = {
+      name, rev: c.rev, revPrev: p ? p.rev : null, profit: c.profit, profitPrev: p ? p.profit : null,
+      margin: c.margin, marginPrev: p ? p.margin : null, conv: c.conv,
+      revMoM: p ? pctChange(c.rev, p.rev) : null,
+      dProfit: p ? c.profit - p.profit : null,
+      dMarginMoM: p && c.margin != null && p.margin != null ? c.margin - p.margin : null,
+      baseMonth: bm, dMarginBase: bm && bm !== cur && c.margin != null ? c.margin - t[bm].margin : null
+    };
+    const chips = [];
+    if (p && p.rev === 0 && c.rev > 0) chips.push('new');
+    if (p && p.rev > 0 && c.rev === 0) chips.push('stopped');
+    if (p && p.rev > 0 && c.rev > 0 && it.revMoM <= -0.15) chips.push('drop');
+    if (p && p.rev > 0 && c.rev > 0 && it.revMoM >= 0.08) chips.push('growing');
+    if (it.dMarginBase != null && it.dMarginBase <= -0.08) chips.push('eroding');
+    it.chips = chips;
+    items.push(it);
+  }
+  return items;
+}
+const CHIP = {
+  new: { label: 'New', color: '--info' }, stopped: { label: 'Stopped', color: '--critical' },
+  drop: { label: 'Revenue drop', color: '--serious' }, growing: { label: 'Growing', color: '--good' },
+  eroding: { label: 'Margin eroding', color: '--warning' }
+};
+const chipHtml = (c, it) => `<span class="chip"><i style="background:var(${CHIP[c].color})"></i>${CHIP[c].label}${c === 'eroding' ? ' vs ' + monthName(it.baseMonth) : ''}</span>`;
+
+function renderMovers() {
+  const pm = prevMonth(state.month), dimLabel = DIMS.find(d => d.k === state.dim).label;
+  document.getElementById('dimseg').innerHTML = DIMS.map(d => `<button type="button" data-k="${d.k}" aria-pressed="${d.k === state.dim}">${d.label}</button>`).join('');
+  document.querySelectorAll('#dimseg button').forEach(b => b.onclick = () => { state.dim = b.dataset.k; renderMovers(); });
+  const host = document.getElementById('movers'), table = document.getElementById('movers-table'), title = document.getElementById('movers-title');
+  if (!pm) {
+    document.getElementById('movers-sub').textContent = 'Pick a month after January to compare against a prior month.';
+    host.innerHTML = '<div class="empty-msg">No prior month to compare.</div>'; table.innerHTML = ''; title.textContent = 'What moved profit';
+    return;
+  }
+  document.getElementById('movers-sub').textContent = `Change in profit${unit()} by ${dimLabel.toLowerCase()}, ${monthName(state.month, true)} vs ${monthName(pm, true)}`;
+  const items = moverStats(state.dim);
+  const net = items.reduce((a, i) => a + i.dProfit, 0);
+  const worst = items.reduce((a, i) => (i.dProfit < a.dProfit ? i : a), items[0]), best = items.reduce((a, i) => (i.dProfit > a.dProfit ? i : a), items[0]);
+  title.textContent = `Profit ${net >= 0 ? 'up' : 'down'} ${money(Math.abs(net))}${unit()} vs ${monthName(pm)}` +
+    (worst && worst.dProfit < 0 ? `. Biggest drag: ${worst.name} (${sign(worst.dProfit, money(Math.abs(worst.dProfit)))})` : '') +
+    (best && best.dProfit > 0 ? `. Biggest lift: ${best.name} (${sign(best.dProfit, money(best.dProfit))})` : '');
+
+  // diverging bar chart, biggest gain on top
+  const bars = items.slice().sort((a, b) => b.dProfit - a.dProfit);
+  host.innerHTML = '';
+  const W = Math.max(host.clientWidth, 200), rowH = 28, barH = 16, top = 6, H = top + bars.length * rowH + 4;
+  const labelW = Math.min(230, Math.round(W * 0.34)), valPad = W < 420 ? 50 : 62, statusW = W >= 760 ? 230 : 0;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, height: H, preserveAspectRatio: 'xMinYMin meet', role: 'img', 'aria-label': 'Profit change by ' + dimLabel }, host);
+  const ext = Math.max(...bars.map(b => Math.abs(b.dProfit)), 1);
+  const lo = Math.min(0, ...bars.map(b => b.dProfit)) < 0 ? -ext : 0, hi = Math.max(0, ...bars.map(b => b.dProfit)) > 0 ? ext : 0;
+  const x0p = labelW + valPad, x1p = W - valPad - statusW;
+  const x = v => x0p + ((v - lo) / ((hi - lo) || 1)) * (x1p - x0p);
+  const maxChars = Math.floor(labelW / 6.6);
+  bars.forEach((b, i) => {
+    const y = top + i * rowH, cy = y + rowH / 2;
+    const g = svgEl('g', {}, svg);
+    svgEl('rect', { x: 0, y, width: W, height: rowH, fill: 'transparent' }, g);
+    const nm = b.name.length > maxChars ? b.name.slice(0, maxChars - 1) + '…' : b.name;
+    svgEl('text', { x: 0, y: cy + 4, class: 'lab' }, g).textContent = nm;
+    const v = b.dProfit, color = v >= 0 ? css('--pos') : css('--neg');
+    if (Math.abs(x(v) - x(0)) > 0.5) svgEl('path', { d: hbarPath(x(0), x(v), cy - barH / 2, barH), fill: color }, g);
+    svgEl('text', { x: v >= 0 ? x(v) + 6 : x(v) - 6, y: cy + 4, class: 'val', 'text-anchor': v >= 0 ? 'start' : 'end' }, g).textContent = sign(v, money(Math.abs(v)));
+    if (statusW) b.chips.forEach((c, k) => {
+      const cx = W - statusW + 12 + k * 112;
+      svgEl('circle', { cx: cx + 4, cy, r: 4, fill: css(CHIP[c].color) }, g);
+      svgEl('text', { x: cx + 12, y: cy + 4, class: 'chiplab' }, g).textContent = CHIP[c].label + (c === 'eroding' ? ' vs ' + monthName(b.baseMonth) : '');
+    });
+    hoverable(g, () => `<div class="t">${esc(b.name)}</div>` +
+      tipRow('Profit change' + unit(), sign(v, money(Math.abs(v), false))) +
+      tipRow(`Profit ${monthName(state.month)}`, money(b.profit, false)) + tipRow(`Profit ${monthName(pm)}`, money(b.profitPrev, false)) +
+      tipRow('Revenue MoM', spct(b.revMoM)) + tipRow('Margin', `${pct(b.margin)} (${pp(b.dMarginMoM)} MoM)`) +
+      (b.chips.length ? `<div style="margin-top:6px">${b.chips.map(c => chipHtml(c, b)).join('')}</div>` : ''));
+  });
+  svgEl('line', { x1: x(0), x2: x(0), y1: 0, y2: H, stroke: css('--axis'), 'stroke-width': 1 }, svg);
+
+  renderMoversTable(items, pm);
+}
+
+function renderMoversTable(items, pm) {
+  const table = document.getElementById('movers-table');
+  const cols = [
+    { k: 'name', label: DIMS.find(d => d.k === state.dim).label, f: i => esc(i.name) },
+    { k: 'rev', label: 'Revenue' + unit(), f: i => money(i.rev, false) },
+    { k: 'revMoM', label: 'Rev MoM', f: i => (i.revPrev === 0 ? 'new' : spct(i.revMoM)) },
+    { k: 'profit', label: 'Profit' + unit(), f: i => money(i.profit, false) },
+    { k: 'margin', label: 'Margin', f: i => pct(i.margin) },
+    { k: 'dMarginMoM', label: 'Margin MoM', f: i => pp(i.dMarginMoM, 1) },
+    { k: 'dMarginBase', label: 'Margin vs baseline', f: i => (i.dMarginBase == null ? 'n/a' : `${pp(i.dMarginBase, 1)} <span style="color:var(--muted)">vs ${monthName(i.baseMonth)}</span>`) },
+    { k: 'chips', label: 'Status', f: i => i.chips.map(c => chipHtml(c, i)).join(''), cls: 'status', nosort: true }
+  ];
+  const { key, dir } = state.sort;
+  const sorted = items.slice().sort((a, b) => {
+    const va = a[key], vb = b[key];
+    if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+    return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir;
+  });
+  table.innerHTML = `<thead><tr>${cols.map(c => `<th ${c.nosort ? '' : `data-sort="${c.k}"`} class="${c.k === key ? (dir > 0 ? 'asc' : 'desc') : ''} ${c.cls || ''}">${c.label}</th>`).join('')}</tr></thead>` +
+    `<tbody>${sorted.map(i => `<tr>${cols.map(c => `<td class="${c.cls || ''}" ${c.k === 'name' ? `title="${esc(i.name)}"` : ''}>${c.f(i)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  table.querySelectorAll('th[data-sort]').forEach(th => th.onclick = () => {
+    const k = th.dataset.sort;
+    state.sort = { key: k, dir: state.sort.key === k ? -state.sort.dir : (k === 'name' ? 1 : -1) };
+    renderMoversTable(items, pm);
+  });
+}
+
+/* ---------- heatmap ---------- */
+function mix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const lum = h => { const [r, g, b] = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const HEAT_CLAMP = 0.10; // colour saturates at +/- 10 pp
+function heatColor(d) {
+  if (d == null) return css('--mid');
+  const t = Math.max(-1, Math.min(1, d / HEAT_CLAMP));
+  return mix(css('--mid'), t < 0 ? css('--neg') : css('--pos'), Math.abs(t));
+}
+function renderHeat() {
+  const host = document.getElementById('heat'), cur = state.month;
+  const rows = visibleRows();
+  const advs = [...new Set(rows.map(r => r.adv))].sort(), pubs = [...new Set(rows.map(r => r.pub))].sort();
+  const cell = {};
+  for (const r of rows) { const k = r.adv + '|' + r.pub; ((cell[k] = cell[k] || {})[r.m] = cell[k][r.m] || []).push(r); }
+  document.getElementById('heat-sub').textContent =
+    `Number = margin in ${monthName(cur, true)}. Colour = change vs ${monthName(MONTHS[0], true).split(' ')[0]}. Dashed = started later, compared with its first month.`;
+  const advT = groupMonthly(rows, 'adv'); let worst = null;
+  for (const [name, t] of advT) {
+    const bm = baselineMonth(t); if (!bm || bm === cur || !(t[cur].rev > 0)) continue;
+    const d = t[cur].margin - t[bm].margin; if (!worst || d < worst.d) worst = { name, d, bm, m: t[cur].margin, base: t[bm].margin };
+  }
+  host.style.gridTemplateColumns = `minmax(150px, 1.4fr) repeat(${pubs.length}, minmax(64px, 1fr))`;
+  let html = '<div class="h"></div>' + pubs.map(p => `<div class="h col">${esc(p)}</div>`).join('');
+  const meta = [];
+  for (const a of advs) {
+    html += `<div class="h">${esc(a)}</div>`;
+    for (const p of pubs) {
+      const o = cell[a + '|' + p] || {};
+      const t = {}; for (const m of MONTHS) t[m] = total(o[m] || []);
+      const c = t[cur];
+      if (!(c.rev > 0)) { html += `<div class="c empty">–</div>`; meta.push(null); continue; }
+      const bm = baselineMonth(t), d = bm !== cur ? c.margin - t[bm].margin : null;
+      const bg = heatColor(d), fg = lum(bg) > 0.45 ? '#0b0b0b' : '#ffffff';
+      html += `<div class="c ${bm !== MONTHS[0] ? 'newcell' : ''}" data-i="${meta.length}" style="background:${bg};color:${fg}">${(c.margin * 100).toFixed(0)}%</div>`;
+      meta.push({ a, p, c, bm, base: t[bm], d });
+    }
+  }
+  host.innerHTML = html;
+  const title = document.getElementById('heat-title');
+  if (worst && worst.d <= -0.02) {
+    const cells = meta.filter(c => c && c.a === worst.name), hit = cells.filter(c => c.d != null && c.d <= -0.08).length;
+    title.textContent = `Biggest margin loss: ${worst.name}, ${pct(worst.base)} to ${pct(worst.m)} since ${monthName(worst.bm)}` +
+      (cells.length > 1 ? `, down at ${hit === cells.length ? 'all ' + hit : hit + ' of ' + cells.length} of its publishers` : '');
+  } else title.textContent = `No advertiser has lost more than 2 pp of margin since ${monthName(MONTHS[0])}`;
+  host.querySelectorAll('.c[data-i]').forEach(el => {
+    const mt = meta[+el.dataset.i];
+    hoverable(el, () => `<div class="t">${esc(mt.a)} × ${esc(mt.p)}</div>` +
+      tipRow(`Margin ${monthName(cur)}`, pct(mt.c.margin)) +
+      tipRow(`Margin ${monthName(mt.bm)} (baseline)`, pct(mt.base.margin)) +
+      tipRow('Change', mt.d == null ? 'first active month' : pp(mt.d, 1)) +
+      tipRow(`Revenue ${monthName(cur)}`, money(mt.c.rev, false)) +
+      tipRow('Revenue / conv', money(mt.c.rev / mt.c.conv, false)) + tipRow('Payout / conv', money(mt.c.pay / mt.c.conv, false)));
+  });
+  const stops = [-1, -0.5, 0, 0.5, 1].map(t => heatColor(t * HEAT_CLAMP));
+  document.getElementById('heat-legend').innerHTML =
+    `<span>${MINUS}10 pp or worse</span><span class="bar" style="background:linear-gradient(90deg,${stops.join(',')})"></span><span>+10 pp or better</span>` +
+    '';
+}
+
+/* ---------- data handling notes ---------- */
+function renderNotes() {
+  const q = DATA.qa;
+  const reasons = Object.entries(q.flag_reasons).map(([r, n]) => `<li>${esc(r)}: ${n} rows</li>`).join('');
+  // Show how much the flagged rows move the MoM numbers in each month they touch
+  const impact = Object.keys(q.flagged_by_month).map(m => {
+    const pm = prevMonth(m); if (!pm) return '';
+    const calc = incl => { const rs = incl ? ROWS : ROWS.filter(r => !r.flag); const a = total(rs.filter(r => r.m === m)), b = total(rs.filter(r => r.m === pm)); return { rev: pctChange(a.rev, b.rev), profit: pctChange(a.profit, b.profit), margin: a.margin - b.margin }; };
+    const ex = calc(false), inc = calc(true), f = q.flagged_by_month[m];
+    return `<li>${monthName(m, true)}: flagged rows add ${money(f.revenue, false)} revenue and ${money(f.revenue - f.payout, false)} profit. ` +
+      `Revenue MoM is <b>${spct(ex.rev)}</b> excluded vs ${spct(inc.rev)} included, profit MoM <b>${spct(ex.profit)}</b> vs ${spct(inc.profit)}, margin change <b>${pp(ex.margin)}</b> vs ${pp(inc.margin)}.</li>`;
+  }).join('');
+  document.getElementById('notes').innerHTML = `
+    <div><h3>Source</h3>${esc(DATA.source)}, sheet <code>fct_daily_performance</code>: ${q.rows.toLocaleString()} rows, one per date x offer x publisher, ${monthName(MONTHS[0], true)} to ${monthName(MONTHS[MONTHS.length - 1], true)}. Every calendar day is present. No nulls, negatives, payout above revenue, or conversions above clicks were found, but <code>prep.py</code> checks for all of these on every run.</div>
+    <div><h3>Flagged rows (excluded by default)</h3>${q.flagged_rows} rows for ${q.flagged_entities.map(esc).join(', ')}, all dated ${q.flagged_dates.join(', ')}. Reasons:<ul>${reasons}</ul>We cannot tell which duplicate is correct, so the whole block is flagged. Use the "Include flagged rows" toggle to see them; when included, all rows are kept as they are.</div>
+    <div><h3>Effect of the flagged rows</h3><ul>${impact}</ul></div>
+    <div><h3>Names and owners</h3>Advertiser, vertical, AE, offer, publisher and publisher manager come from the dim tables for clean rows. They matched the fact table on every clean row.</div>
+    <div><h3>Formulas</h3><ul>
+      <li>Profit = revenue ${MINUS} payout</li>
+      <li>Margin % = sum(profit) / sum(revenue), summed over whatever is in view. Never an average of row margins.</li>
+      <li>MoM % = (current ${MINUS} prior) / prior</li>
+      <li>Margin change is in percentage points (pp), current margin minus prior margin.</li>
+      <li>Per day = monthly value / days in that month (${MONTHS.map(m => monthName(m) + ' ' + DAYS[m]).join(', ')}). Margin is a ratio, so it is unchanged.</li></ul></div>
+    <div><h3>Status chips</h3><ul>
+      <li><b>New</b>: no revenue in the prior month, revenue this month.</li>
+      <li><b>Stopped</b>: revenue in the prior month, none this month.</li>
+      <li><b>Revenue drop</b>: revenue MoM at or below ${MINUS}15%.</li>
+      <li><b>Growing</b>: revenue MoM at or above +8%.</li>
+      <li><b>Margin eroding</b>: margin this month at least 8 pp below the baseline. Baseline is January, or the first month with revenue for anything that started later. The chip names the baseline month.</li></ul>
+      With "Per day" on, chips use per-day revenue, so a short month does not trigger a false drop.</div>
+    <div><h3>Controls and charts</h3><ul>
+      <li><b>Month</b>: every number compares the selected month with the month before. Click a month on a trend chart to select it.</li>
+      <li><b>Per day</b>: divides revenue, profit and conversions by the days in each month, so February (28 days) is not penalised. Margin is unaffected.</li>
+      <li><b>Include flagged rows</b> (above): adds back the excluded rows. Off by default.</li>
+      <li><b>What moved profit</b>: bars are the change in profit vs the prior month. Gains on top, losses at the bottom. The full table (collapsed) adds revenue, margin and status.</li>
+      <li><b>Heatmap</b>: number = margin for that advertiser and publisher in the selected month. Colour = change in pp vs January, capped at 10 pp. Pairs that started after January (dashed) are compared with their first month. A dash means no traffic that month. Hover a cell for revenue and payout per conversion.</li></ul></div>
+    <div><h3>Limits</h3>Six months of data and no prior year, so seasonality cannot be measured directly. Per-day values remove the calendar effect (February has 28 days), and comparing advertisers in the same vertical helps tell a market trend from a single account problem.</div>`;
+}
+
+/* ---------- 60 seconds with the CEO ---------- */
+// Small diverging column chart: one stacked column per month, gains above zero, losses below.
+function miniImpact(host, parts) {
+  host.innerHTML = '';
+  const W = Math.max(host.clientWidth, 200), H = 92, m = { t: 6, b: 16 }, n = MONTHS.length;
+  const pos = MONTHS.map((_, i) => parts.reduce((a, p) => a + Math.max(0, p.values[i]), 0));
+  const neg = MONTHS.map((_, i) => parts.reduce((a, p) => a + Math.min(0, p.values[i]), 0));
+  const hi = Math.max(...pos, 0), lo = Math.min(...neg, 0), span = (hi - lo) || 1;
+  const y = v => m.t + ((hi - v) / span) * (H - m.t - m.b);
+  const band = W / n, bw = Math.min(24, band * 0.55);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img' }, host);
+  MONTHS.forEach((mo, i) => {
+    const cx = band * i + band / 2, g = svgEl('g', {}, svg);
+    svgEl('rect', { x: band * i, y: 0, width: band, height: H, fill: 'transparent' }, g);
+    let up = 0, down = 0;
+    parts.forEach(p => {
+      const v = p.values[i]; if (Math.abs(v) < 1) return;
+      const a = v > 0 ? up : down, b = a + v;
+      const y0 = y(a), y1 = y(b), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0) - 2);
+      svgEl('rect', { x: cx - bw / 2, y: v > 0 ? top + 2 : top, width: bw, height: h, rx: 2, fill: css(p.color) }, g);
+      if (v > 0) up = b; else down = b;
+    });
+    svgEl('text', { x: cx, y: H - 3, 'text-anchor': 'middle' }, g).textContent = monthName(mo);
+    hoverable(g, () => `<div class="t">${monthName(mo, true)}</div>` +
+      parts.map(p => tipRow(p.name, sign(p.values[i], money(Math.abs(p.values[i]), false)), css(p.color))).join('') +
+      (parts.length > 1 ? tipRow('Net', sign(up + down, money(Math.abs(up + down), false))) : ''));
+  });
+  svgEl('line', { x1: 0, x2: W, y1: y(0), y2: y(0), stroke: css('--axis'), 'stroke-width': 1 }, svg);
+}
+function renderCeo() {
+  const S = DATA.stories, last = S.months.length - 1, mo = monthName(S.months[last]);
+  const c = S.cobalt, g = S.growth, p = S.publishers;
+  const k = v => money(Math.abs(v));
+  const lostVolume = g.everpeak[last] + g.summit[last];
+  const be = new Date(S.months[last] + '-15'); be.setMonth(be.getMonth() + Math.ceil(c.months_to_breakeven));
+  const breakEven = be.toLocaleString('en-US', { month: 'long' });
+  const cards = [
+    {
+      title: 'Cobalt Mortgage margin is being given away to publishers',
+      big: `${MINUS}${k(c.loss[last])}<small>profit lost in ${mo}, bigger every month</small>`,
+      cause: `Cobalt still pays us <b>${money(c.rpc_last, false)}</b> per lead, but we now pay publishers <b>${money(c.ppc_last, false)}</b>, up from ${money(c.ppc_first, false)} in January. The payout rose about ${money(c.step, false)} on the 1st of every month, on all 4 publishers at once. Margin fell from ${pct(c.margin_first)} to ${pct(c.margin_last)}. <b>At this pace payout passes revenue around ${breakEven}</b>, and every Cobalt lead loses money.`,
+      act: `<b>Action:</b> freeze Cobalt payouts now, find who approved the monthly increases, and roll back toward the January rate.`,
+      parts: [{ name: 'Cobalt profit lost vs January payout rate', values: c.loss, color: '--neg' }]
+    },
+    {
+      title: 'Flat revenue hides lost clients. One new advertiser is covering for them',
+      big: `${MINUS}${k(lostVolume)}<small>a month from Everpeak and Summit, offset by Lumen +${k(g.lumen[last])}</small>`,
+      cause: `<b>Everpeak</b> was capped overnight on 1 April (${g.everpeak_clicks_before} to ${g.everpeak_clicks_after} clicks a day), then its price per lead fell from ${money(g.everpeak_rpc_q1, false)} to ${money(g.everpeak_rpc_last, false)}. <b>Summit</b> cut volume in two steps, on 1 May and 1 June, with price and margin unchanged. That is likely a post-tax-season budget, not a lost client, but we have no 2024 data to prove it. <b>Lumen</b> (new in March, same AE and vertical as Everpeak) carries all the growth.`,
+      act: `<b>Action:</b> AEs get the reason and a restart date from Everpeak and Summit this week. Check whether Everpeak's solar budget moved to Lumen.`,
+      parts: [
+        { name: 'Lumen Energy (new)', values: g.lumen, color: '--pos' },
+        { name: 'Everpeak vs Q1 run rate', values: g.everpeak, color: '--neg' },
+        { name: 'Summit vs Jan to Apr run rate', values: g.summit, color: '--serious' }
+      ]
+    },
+    {
+      title: 'Cascade Traffic is quietly raising its price. Vertex is our biggest margin opportunity',
+      big: `${MINUS}${k(p.cascade[last])}<small>Cascade leak in ${mo}, bigger every month</small>`,
+      cause: `<b>Cascade</b>'s payout share rises every month on every offer it runs, while the advertisers pay the same: its margin went from ${pct(p.cascade_margin[0])} to ${pct(p.cascade_margin[last])}. That is why BlueHarbor and Everpeak show red only with Cascade. Separately, <b>Vertex Clicks</b> earns us ${pct(p.vertex_margin)} on BlueHarbor, Northwind and Summit, where other publishers earn ${pct(p.others_margin)} on the same offers. That is not a loss, it has been flat all year, but it is <b>up to ${k(p.vertex[last])} a month</b> of upside if we could get the same volume at network rates. We do not know yet that we can.`,
+      act: `<b>Action:</b> reset Cascade to January rates now. Then test Vertex: renegotiate its rate, or move a slice of its volume to Apex and Meridian and see if it holds.`,
+      parts: [{ name: 'Cascade vs its January margin (excl. Cobalt)', values: p.cascade, color: '--neg' }]
+    }
+  ];
+  const host = document.getElementById('ceo');
+  host.innerHTML = cards.map((c, i) => `<div class="card"><div class="n">${i + 1}</div><h3>${c.title}</h3><div class="big">${c.big}</div>
+    <div class="mini" id="mini${i}"></div><div class="keys">${c.parts.map(p => `<span><i style="background:var(${p.color})"></i>${esc(p.name)}</span>`).join('')}</div>
+    <p>${c.cause}</p><p class="act">${c.act}</p></div>`).join('');
+  cards.forEach((c, i) => miniImpact(document.getElementById('mini' + i), c.parts));
+}
+
+/* ---------- wiring ---------- */
+function render() {
+  hideTip();
+  renderCeo();
+  const series = byMonth(visibleRows());
+  renderKpis(series);
+  renderTrends(series);
+  renderMovers();
+  renderHeat();
+}
+function init() {
+  document.getElementById('srcnote').textContent = `${monthName(MONTHS[0])} to ${monthName(MONTHS[MONTHS.length - 1], true)}`;
+  const sel = document.getElementById('month');
+  sel.innerHTML = MONTHS.map(m => `<option value="${m}">${monthName(m, true)}</option>`).join('');
+  sel.value = state.month;
+  sel.onchange = () => { state.month = sel.value; render(); };
+  document.getElementById('perday').onchange = e => { state.perDay = e.target.checked; render(); };
+  document.getElementById('flagged').onchange = e => { state.flagged = e.target.checked; render(); };
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('liftiq-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById('theme').onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('liftiq-theme', root.dataset.theme); } catch (e) {}
+    render();
+  };
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+  let w = 0, timer;
+  new ResizeObserver(([e]) => {
+    const nw = Math.round(e.contentRect.width); if (nw === w) return;
+    const first = !w; w = nw; if (first) return;
+    clearTimeout(timer); timer = setTimeout(render, 100);
+  }).observe(document.querySelector('main'));
+  document.addEventListener('pointerdown', e => { if (!e.target.closest('svg, .heat')) hideTip(); });
+  renderNotes();
+  render();
+}
+init();
+</script>
+</body>
+</html>
